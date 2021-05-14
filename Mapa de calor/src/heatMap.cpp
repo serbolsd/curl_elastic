@@ -36,6 +36,7 @@ HeatMap::HeatMap(int width, int height, float decay, float momentum) {
 
 void 
 HeatMap::setInfluenceMap(sf::Vector2u mapSize) {
+  //to create influence map with a size
   m_influenceMap.resize(mapSize.x);
   for (int i = 0; i < m_influenceMap.size(); ++i) {
     m_influenceMap[i].resize(mapSize.y);
@@ -104,6 +105,7 @@ HeatMap::createHeatMap(std::vector<sf::Vector3i> data) {
 
   std::map<sf::Vector3i, int, cmpVector3i> countingMap;
   std::map<sf::Vector3f, int, cmpVector3f> normalizedMap;
+
   // To store the min and max point on the heatmap
   sf::Vector3i minPoint(0, 0, 0);
   sf::Vector3i maxPoint(0, 0, 0);
@@ -113,20 +115,21 @@ HeatMap::createHeatMap(std::vector<sf::Vector3i> data) {
 
   for (sf::Vector3i pos : data) {
     if (countingMap.find(pos) == countingMap.end()) {
+      //save the position if don't save yet
       countingMap.insert(std::make_pair(pos, 1));
     }
     else { ++countingMap[pos]; }
-
+    //Comparate the current point with the actual max point
     maxPoint.x = maxPoint.x > pos.x ? maxPoint.x : pos.x;
     maxPoint.y = maxPoint.y > pos.y ? maxPoint.y : pos.y;
     maxPoint.z = maxPoint.z > pos.z ? maxPoint.z : pos.z;
 
-
+    //Comparate the current point with the actual min point
     minPoint.x = minPoint.x < pos.x ? minPoint.x : pos.x;
     minPoint.y = minPoint.y < pos.y ? minPoint.y : pos.y;
     minPoint.z = minPoint.z < pos.z ? minPoint.z : pos.z;
   }
-
+  //Calculate the scale
   scale.x = static_cast<int>(std::abs(minPoint.x - maxPoint.x));
   scale.y = static_cast<int>(std::abs(minPoint.y - maxPoint.y));
   scale.z = static_cast<int>(std::abs(minPoint.z - maxPoint.z));
@@ -155,8 +158,6 @@ HeatMap::createHeatMap(std::vector<sf::Vector3i> data) {
 
 void
 HeatMap::showHeatmap() {
-  float maxValue = 100.0f;
-
   int width = 1280;
   int height = 720;
 
@@ -175,16 +176,12 @@ HeatMap::showHeatmap() {
   m_window->setView(view);
   setInfluenceMap(m_mapSize);
   propagation();
-  //propagation();
+
   sf::Image heatmapImg;
   heatmapImg.create(m_mapSize.x, m_mapSize.y, sf::Color::Transparent);
 
-
-  int j = 0;
   sf::Vector2i pixelPosition;
   sf::Color c;
-  int posX = 0;
-  int posY = 0;
 
   sf::Color hottestC;
   hottestC.r = 255;
@@ -208,33 +205,27 @@ HeatMap::showHeatmap() {
   coldestC.a = 0.3 * 255;
   sf::Color tranC = sf::Color::Transparent;
 
-  maxValue = 0;
+  float maxValue = 0;
 
-  for (auto column : getInfluenceMap()) {
-    posY = 0;
-    for (auto pos : column) {
+  for (auto map : getInfluenceMap()) {
+    for (auto pos : map) {
       maxValue = std::max(maxValue, pos);
-      ++posY;
     }
-    ++posX;
   }
 
-  posX = 0;
-  posY = 0;
+  int posX = 0;
+  int posY = 0;
 
-  for (auto column : getInfluenceMap()) {
+  for (auto map : getInfluenceMap()) {
     posY = 0;
-    for (auto pos : column) {
+    for (auto pos : map) {
       float normPos = pos / maxValue;
       // Defines the color that should appear at a given point
-      // c = BlendColor(sf::Color::Transparent, sf::Color::Red, pos);
       c = pos > 0.75 ? BlendColor(hotC, hottestC, clamp(inverseLerp(0.75, 1.5, pos), 0.0f, 1.0f)) :
-        pos > 0.50 ? BlendColor(coldC, hotC, inverseLerp(0.50, 0.75, pos)) :
-        pos > 0.25 ? BlendColor(coldestC, coldC, inverseLerp(0.25, 0.50, pos)) :
-        BlendColor(tranC, coldestC, inverseLerp(0.00, 0.25, pos));
-      //c.a = 100;
+          pos > 0.50 ? BlendColor(coldC, hotC, inverseLerp(0.50, 0.75, pos)) :
+          pos > 0.25 ? BlendColor(coldestC, coldC, inverseLerp(0.25, 0.50, pos)) :
+          BlendColor(tranC, coldestC, inverseLerp(0.00, 0.25, pos));
 
-      //c.a = 180;
       heatmapImg.setPixel(posX, posY, c);
       ++posY;
     }
@@ -247,13 +238,7 @@ HeatMap::showHeatmap() {
   sf::Sprite heatMapSprite;
   heatMapSprite.setTexture(heatMapTexture);
 
-
-  // Debugging
-  sf::CircleShape shape(100.f);
-  shape.setFillColor(sf::Color::Green);
-
   m_window->clear();
-  //m_window->draw(shape);
   m_window->draw(heatMapSprite);
   m_window->display();
 }
@@ -273,18 +258,13 @@ HeatMap::BlendColor(sf::Color color1, sf::Color color2, float fraction) {
 void HeatMap::render() {
   sf::Clock deltaClock;
   float time=0;
-  while (m_window->isOpen())
-  {
-    // check all the window's events that were triggered since the last iteration of the loop
+  while (m_window->isOpen()) {
     sf::Event event;
-    while (m_window->pollEvent(event))
-    {
-      // "close requested" event: we close the window
+    while (m_window->pollEvent(event)) {
       if (event.type == sf::Event::Closed)
         m_window->close();
     }
-    if (time >=1)
-    {
+    if (time >=1) {
       showHeatmap();
       //propagation();
       //for (int i = 0; i < m_points.size(); i++)

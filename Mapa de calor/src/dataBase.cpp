@@ -159,7 +159,9 @@ DataBase::Get(string url, string query, string& headerStr, string& responseStr) 
   struct curl_slist* headers;
 
   headers = NULL;
+  headers = curl_slist_append(headers, "Accept: application/json");
   headers = curl_slist_append(headers, "Content-Type: application/json");
+  headers = curl_slist_append(headers, "charset: utf-8");
   
   curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
